@@ -1,0 +1,5 @@
+{
+  "source_language": "en",
+  "target_language": "es",
+  "text": "Security is a core principle of AWS. The platform offers encryption, identity management, and monitoring tools that help customers protect sensitive data. Shared responsibility ensures that while AWS secures the cloud, customers remain responsible for securing their applications."  
+}
