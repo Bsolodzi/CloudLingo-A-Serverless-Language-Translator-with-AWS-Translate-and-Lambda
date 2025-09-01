@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: S3 + IAM + Lambda + S3->Lambda trigger for AWS Translate demo
+
+Resources:
+  # --------- S3 Buckets ---------
+  RequestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-request-bucket"
+      VersioningConfiguration: { Status: Enabled }
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldFiles
+            Status: Enabled
+            ExpirationInDays: 7
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Function: !GetAtt TranslateLambda.Arn
+
+  ResponseBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-response-bucket"
+      VersioningConfiguration: { Status: Enabled }
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldFiles
+            Status: Enabled
+            ExpirationInDays: 7
+
+  # --------- IAM Role for Lambda ---------
+  TranslateS3Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "TranslateS3Role-${AWS::Region}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: [ "lambda.amazonaws.com" ] }
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  TranslateS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: TranslateS3AccessPolicy
+      Roles: [ !Ref TranslateS3Role ]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: [ "translate:TranslateText" ]
+            Resource: "*"
+          - Effect: Allow
+            Action: [ "s3:GetObject", "s3:PutObject", "s3:ListBucket" ]
+            Resource:
+              - !Sub "arn:aws:s3:::${AWS::AccountId}-request-bucket"
+              - !Sub "arn:aws:s3:::${AWS::AccountId}-request-bucket/*"
+              - !Sub "arn:aws:s3:::${AWS::AccountId}-response-bucket"
+              - !Sub "arn:aws:s3:::${AWS::AccountId}-response-bucket/*"
+
+  # --------- Lambda Function ---------
+  TranslateLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "capstone-translate-func-${AWS::Region}"
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt TranslateS3Role.Arn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          OUTPUT_BUCKET: !Ref ResponseBucket
+      Code:
+        ZipFile: |
+          import json, os, logging, boto3
+          s3 = boto3.client("s3")
+          translate = boto3.client("translate")
+          log = logging.getLogger()
+          log.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              for rec in event.get("Records", []):
+                  b = rec["s3"]["bucket"]["name"]
+                  k = rec["s3"]["object"]["key"]
+                  log.info(f"Processing s3://{b}/{k}")
+
+                  obj = s3.get_object(Bucket=b, Key=k)
+                  data = json.loads(obj["Body"].read().decode("utf-8"))
+
+                  # always treat as list of items
+                  items = data.get("items") if isinstance(data, dict) and "items" in data else [data]
+
+                  translated_items = []
+                  for it in items:
+                      src = it.get("source_language", "auto")
+                      tgt = it["target_language"]
+                      txt = it["text"]
+
+                      resp = translate.translate_text(
+                          Text=txt,
+                          SourceLanguageCode=src,
+                          TargetLanguageCode=tgt
+                      )
+
+                      translated_items.append({
+                          "source_language": src,
+                          "target_language": tgt,
+                          "original_text": txt,
+                          "translated_text": resp["TranslatedText"]
+                      })
+
+                  # keep consistent structure
+                  out = { "items": translated_items }
+
+                  # rename test.json -> test-output.json
+                  if "." in k:
+                      base, ext = k.rsplit('.', 1)
+                      out_key = f"{base}-output.{ext}"
+                  else:
+                      out_key = f"{k}-output.json"
+
+                  s3.put_object(
+                      Bucket=os.environ["OUTPUT_BUCKET"],
+                      Key=out_key,
+                      Body=json.dumps(out, ensure_ascii=False).encode("utf-8")
+                  )
+                  log.info(f"Wrote s3://{os.environ['OUTPUT_BUCKET']}/{out_key}")
+
+  # allow S3 to invoke Lambda
+  AllowS3InvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TranslateLambda
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::${AWS::AccountId}-request-bucket"
+
+Outputs:
+  RequestBucketName:
+    Value: !Ref RequestBucket
+  ResponseBucketName:
+    Value: !Ref ResponseBucket
+  LambdaName:
+    Value: !Ref TranslateLambda
+  TranslateS3RoleArn:
+    Value: !GetAtt TranslateS3Role.Arn
