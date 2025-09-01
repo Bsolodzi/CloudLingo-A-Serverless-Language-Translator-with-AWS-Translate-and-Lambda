@@ -1,0 +1,6 @@
+{
+    "source_language": "en", 
+    "target_language": "zh", 
+    "original_text": "Hello, this is a test. This was translated using AWS Translate running on a serverless architecture.", 
+    "translated_text": "你好，这是一个测试。这是使用在无服务器架构上运行的 AWS Translate 进行翻译的."
+}
