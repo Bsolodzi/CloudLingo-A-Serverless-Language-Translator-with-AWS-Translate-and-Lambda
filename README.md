@@ -82,6 +82,8 @@ Ensure the following are installed:
 
 ## Step 1: Deploy Resources with CloudFormation
 
+> All scripts and templates used in this project are openly available in this repository, feel free to use all files to reproduce this project.
+
 1. Use the provided CloudFormation template (`translation-setup-with-lambda.yaml`) to provision all required AWS resources:
    - S3 Request Bucket (input)
    - S3 Response Bucket (output)
