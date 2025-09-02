@@ -2,8 +2,6 @@
 
 _Author: Bernard Kwame Solodzi  
 Date: 2025-09-01_
-
-> under continuous development, return soon for complete docs
   
 ---
 
@@ -35,8 +33,6 @@ This project demonstrates **event-driven architecture** on AWS to solve real-wor
    - Sends text to **Amazon Translate**.  
    - Stores translated results in the **Output S3 Bucket**.  
 4. The output file is saved as `filename-output.json`.  
-
----
 
 ## Table of Contents
 
@@ -162,39 +158,38 @@ Ensure the following are installed:
 
 ![Response Bucket with translated files](./images/ResponseBucket.png)
 
+---
+
 ![Translated Output Screenshot](./images/TestOutputConfirmation1.png)
 
 Another Test
+---
 
 ![Translated Output Screenshot](./images/TestOutputConfirmation2.png)
 
 ---
 ## Monitoring 
 
-Lambda Function
-
+Metrics on Lambda Function
+---
 ![CloudWatch Metrics on Lambda Function](./images/CloudwatchMetrics1.png)
 ![CloudWatch Metrics on Lambda Function](./images/CloudwatchMetrics2.png)
 
 
-AWS Translate Dashboard
+Metrics from AWS Translate Dashboard
+---
 ![AWS Translate Dashboard](./images/TranslateMetrics1.png)
 ![AWS Translate Dashboard](./images/TranslateMetrics2.png)
 
----
 ## Challenges and Lessons Learned
 
 * **Challenge:** Ensuring Lambda had the correct IAM permissions to access both S3 buckets and Translate.
 * **Troubleshooting:** Debugging with CloudWatch logs helped identify permission errors and fix JSON parsing issues.
 * **Lesson Learned:** Properly structuring the input/output JSON files is crucial for batch processing and future scalability.
 
----
-
 ## Conclusion
 
 This project demonstrates how AWS serverless services can work together to create an **automated translation system**. With S3 for storage, Lambda for processing, and Translate for language conversion, CloudLingo provides a **scalable, cost-effective, and event-driven pipeline**. It eliminates manual translation steps and makes it easy to support multilingual workflows in real time.
-
----
 
 ## References
 
@@ -202,5 +197,3 @@ This project demonstrates how AWS serverless services can work together to creat
 * [AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)
 * [Amazon Translate Documentation](https://docs.aws.amazon.com/translate/latest/dg/what-is.html)
 * [AWS IAM Documentation](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html)
-
----
