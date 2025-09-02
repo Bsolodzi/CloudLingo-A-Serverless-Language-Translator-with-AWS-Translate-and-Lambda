@@ -123,8 +123,6 @@ Ensure the following are installed:
 * The Lambda function is provisioned by CloudFormation.
 * Runtime: **Python 3.12**
 * Code: `lambda.py` (translation logic).
-* Environment variable:
-  * `OUTPUT_BUCKET = <response-bucket-name>`
 
 ![Lambda Function](./images/LambdaFunction.png)
 
